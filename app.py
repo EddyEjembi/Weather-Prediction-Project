@@ -175,7 +175,7 @@ def main():
                     if section == 'Afternoon':
                         st.write('In the {} (12:00 - 17:00) expect a \"{}\" Weather'.format(section, pred.upper()))
                     if section == 'Evening':
-                        st.write('In the Evening {} (18:00 - 23:00) expect a \"{}\" Weather'.format(section, pred.upper()))
+                        st.write('In the {} (18:00 - 23:00) expect a \"{}\" Weather'.format(section, pred.upper()))
                     #st.write(f'{section}: {prediction}')
 
 
