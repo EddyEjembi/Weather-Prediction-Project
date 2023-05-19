@@ -122,7 +122,34 @@ def main():
                 df[features] = scaler.transform(df[features])
 
                 # Make predictions using the ensemble model
-                data = df.drop(['condition', 'city', 'date_time', 'year'], axis=1)
+                section_data = df
+                section_data['Section of Day'] = pd.cut(df['hour'], bins=[0, 6, 12, 18, 24], labels=['Night', 'Morning', 'Afternoon', 'Evening'])
+                #print(section_data)
+
+                night = section_data[section_data['Section of Day'] == 'Night']
+                morning = section_data[section_data['Section of Day'] == 'Morning']
+                afternoon = section_data[section_data['Section of Day'] == 'Afternoon']
+                evening = section_data[section_data['Section of Day'] == 'Evening']
+                #print(night)
+                features_2 = ['hour', 'hour_sin', 'hour_cos']
+                night[features + features_2] = night[features + features_2].mean()
+                morning[features + features_2] = morning[features +features_2].mean()
+                afternoon[features + features_2] = afternoon[features + features_2].mean()
+                evening[features + features_2] = evening[features + features_2].mean()
+                #print(night)
+                section = [night, morning, afternoon, evening]
+                section_result = []
+                #prediction for section data
+                for i in section:
+                    x = i.drop(['condition', 'city', 'date_time', 'year', 'Section of Day'], axis=1)
+                    pred = ensemble.predict(x)
+                    var_name = [name for name, value in locals().items() if value is i][0]
+                    result = [var_name.capitalize(), pred.mean()]
+                    section_result.append(result)
+                print(section_result)
+
+                #prdiction for hourly data
+                data = df.drop(['condition', 'city', 'date_time', 'year', 'Section of Day'], axis=1)
                 predictions = ensemble.predict(data)
 
                 decoded_condition = {
@@ -142,14 +169,9 @@ def main():
                 }
 
                 # Create a DataFrame with the predictions
-                result = pd.DataFrame(df['condition'])
-                result['Predicted Condition Encoded'] = pd.DataFrame(predictions)
+                section_data['condition'] = pd.DataFrame(df['condition'])
+                section_data['Predicted Condition Encoded'] = pd.DataFrame(predictions)
 
-                # Divide the day into sections (e.g., 3 sections: morning, afternoon, evening)
-                result['Section of Day'] = pd.cut(df['hour'], bins=[0, 6, 12, 18, 24], labels=['Night', 'Morning', 'Afternoon', 'Evening'])
-
-                # Group the data by sections and calculate the average predictions
-                section_predictions = result.groupby('Section of Day')['Predicted Condition Encoded'].mean()
                 pred = None
                 decode = []
 
@@ -162,27 +184,27 @@ def main():
                 st.write("")
                 st.write("")
                 st.header("Predicted Weather Condition for {}:".format(date))
-                for section, prediction in section_predictions.items():
-                    print(f'{section}: {prediction}')
+                #st.write('At {} (00:00 - 05:00) expect a \"{}\" Weather'.format(dis, pred.upper()))
+                for i in section_result:
                     for key, value in decoded_condition.items():
-                        if value == np.round(prediction):
+                        if value == i[1]:
                             pred = key
                             break
-                    if section == 'Night':
-                        st.write('At {} (00:00 - 05:00) expect a \"{}\" Weather'.format(section, pred.upper()))
-                    if section == 'Morning':
-                        st.write('In the {} (06:00 - 11:00) expect a \"{}\" Weather'.format(section, pred.upper()))
-                    if section == 'Afternoon':
-                        st.write('In the {} (12:00 - 17:00) expect a \"{}\" Weather'.format(section, pred.upper()))
-                    if section == 'Evening':
-                        st.write('In the Evening {} (18:00 - 23:00) expect a \"{}\" Weather'.format(section, pred.upper()))
-                    #st.write(f'{section}: {prediction}')
-
-
-                result['Predicted Condition'] = decode
+                    if i[0] == 'Night':
+                        st.write('At {} (00:00 - 05:00) expect a \"{}\" Weather'.format(i[0], pred.upper()))
+                    if i[0] == 'Morning':
+                        st.write('In the {} (06:00 - 11:00) expect a \"{}\" Weather'.format(i[0], pred.upper()))
+                    if i[0] == 'Afternoon':
+                        st.write('In the {} (12:00 - 17:00) expect a \"{}\" Weather'.format(i[0], pred.upper()))
+                    if i[0] == 'Evening':
+                        st.write('In the {} (18:00 - 23:00) expect a \"{}\" Weather'.format(i[0], pred.upper()))
+                
+                section_data['Predicted Condition'] = decode
                 # Display the predictions
                 st.subheader("Predicted Weather Conditions Every hour:")
-                st.dataframe(result.drop(['condition'], axis=1))
+                columns_to_not_display = ['condition', 'city', 'date_time', 'city_encoded', 'year', 'month', 'day', 'hour',
+                                         'month_sin', 'month_cos', 'hour_sin', 'hour_cos', 'Predicted Condition Encoded']
+                st.dataframe(section_data.drop(columns_to_not_display, axis=1))
             else:
                 st.error("Failed to fetch weather data. Please check your inputs.")
     else:
