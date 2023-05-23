@@ -64,7 +64,7 @@ def main():
     #Days to forcast
     def get_next_days():
         today = datetime.today().date()
-        dat = pd.date_range(today, periods=3).date
+        dat = pd.date_range(today, periods=4).date
         return dat
 
     # Fetch the next 3 days
