@@ -178,19 +178,18 @@ def main():
 
                 #Dictionary to decode the Weather Conditions
                 decoded_condition = {
-                    'Clear': 0,
-                    'Cloudy': 1,
-                    'Heavy Rain at Times': 2,
-                    'Light Rain Shower': 3,
-                    'Mist': 4,
-                    'Moderate or Heavy Rain Shower': 5,
-                    'Moderate Rain at Times': 6,
-                    'Overcast': 7,
-                    'Partly Cloudy': 8,
-                    'Patchy Light Rain with Thunder': 9,
-                    'Patchy Rain Possible': 10,
-                    'Thundry Outbreak Possible': 11
-
+                    'Clear': [0, ':sun_with_face:'],
+                    'Cloudy': [1, ':cloud:'],
+                    'Heavy Rain at Times': [2, ':rain_cloud:'],
+                    'Light Rain Shower': [3, ':partly_sunny_rain:'],
+                    'Mist': [4, ':fog:'],
+                    'Moderate or Heavy Rain Shower': [5, ':rain_cloud:'],
+                    'Moderate Rain at Times': [6, ':umbrella:'],
+                    'Overcast': [7, ':cloud:'],
+                    'Partly Cloudy': [8, ':barely_sunny:'],
+                    'Patchy Light Rain with Thunder': [9, ':thunder_cloud_and_rain:'],
+                    'Patchy Rain Possible': [10, ':partly_sunny_rain:'],
+                    'Thundry Outbreak Possible': [11, ':lightning:'],
                 }
 
                 # Create a DataFrame with the predictions
@@ -198,13 +197,14 @@ def main():
                 section_data['Predicted Condition Encoded'] = pd.DataFrame(predictions)
 
                 pred = None
+                emoji = None
                 #List to hold the decoded Predictions for every hour
                 decode = []
 
                 #Decode the condition and append it to the List
                 for i in predictions:
                     for key, value in decoded_condition.items():
-                        if value == i:
+                        if value[0] == i:
                             decode.append(key)
 
                 # Print the predicted conditions for each section
@@ -215,17 +215,18 @@ def main():
                 #Loop through the section result and display the section along with it's prediction
                 for i in section_result:
                     for key, value in decoded_condition.items():
-                        if value == i[1]:
+                        if value[0] == i[1]:
                             pred = key
+                            emoji = value[1]
                             break
                     if i[0] == 'Night':
-                        st.write('At {} (00:00 - 05:00) expect a \"{}\" Weather'.format(i[0], pred.upper()))
+                        st.write('At {} :night_with_stars: (00:00 - 05:00) expect a \"{} {}\"  Weather'.format(i[0], pred.upper(), emoji))
                     if i[0] == 'Morning':
-                        st.write('In the {} (06:00 - 11:00) expect a \"{}\" Weather'.format(i[0], pred.upper()))
+                        st.write('In the {} :city_sunrise: (06:00 - 11:00) expect a \"{} {}\"  Weather'.format(i[0], pred.upper(), emoji))
                     if i[0] == 'Afternoon':
-                        st.write('In the {} (12:00 - 17:00) expect a \"{}\" Weather'.format(i[0], pred.upper()))
+                        st.write('In the {} :sunrise: (12:00 - 17:00) expect a \"{} {}\"  Weather'.format(i[0], pred.upper(), emoji))
                     if i[0] == 'Evening':
-                        st.write('In the {} (18:00 - 23:00) expect a \"{}\" Weather'.format(i[0], pred.upper()))
+                        st.write('In the {} :city_sunset: (18:00 - 23:00) expect a \"{} {}\"  Weather'.format(i[0], pred.upper(), emoji))
                 
                 #Display the predictions
                 section_data['Predicted Condition'] = decode
