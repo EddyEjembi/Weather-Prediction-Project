@@ -241,7 +241,8 @@ def main():
         st.warning("Please enter a city and date.")
         
     st.markdown("---")
-    st.markdown("© 2023 [Eddy Ejembi](https://github.com/EddyEjembi). All rights reserved.")
+    #st.markdown("© 2023 [Eddy Ejembi](https://github.com/EddyEjembi). All rights reserved.")
+    st.markdown("© 2023 Olaniran Joseph. All rights reserved.")
 
 if __name__ == "__main__":
     main()
