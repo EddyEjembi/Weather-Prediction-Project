@@ -7,9 +7,12 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import VotingClassifier
 import pickle
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # API key for weatherapi.com
-API_KEY = 'fb222dc231b44f05b0682536230205'
+API_KEY = os.getenv('API_KEY')
 
 
 # Define city coordinates
