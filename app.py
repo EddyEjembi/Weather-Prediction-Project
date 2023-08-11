@@ -11,46 +11,107 @@ from datetime import datetime, timedelta
 # API key for weatherapi.com
 API_KEY = 'fb222dc231b44f05b0682536230205'
 
+
+# Define city coordinates
+city_coordinates = {
+    "Lagos": ("6.5244", "3.3792"),
+    "Port Harcourt": ("4.8156", "7.0498"),
+    "Kano": ("12.0022", "8.5927"),
+    "Abuja": ("9.0579", "7.4951"),
+    "Ibadan": ("7.3776", "3.9470"),
+    "Ota": ("6.6804", "3.2356"),
+}
+
+
+#Days to forcast
+def get_next_days():
+    today = datetime.today().date()
+    dat = pd.date_range(today, periods=8).date
+    return dat
+
 #load machine learning model
 with open('ensemble_model.pkl', 'rb') as file:
     ensemble = pickle.load(file)
 
 # Function to fetch hourly weather data for a given date and city
 @st.cache_data
-def fetch_hourly_weather_data(date, city, lat, lon):
-    date = date.strftime('%Y-%m-%d')  # Convert date to string
-    #make API request
-    url = 'http://api.weatherapi.com/v1/forecast.json?key=' + API_KEY + '&q=' + str(lat) + ',' + str(lon) + '&dt=' + date + '&hour=0-23'
-    response = requests.get(url)
-    data = response.json()
-    #print(response)
-    #Parameter for API request
-    hourly_data = data.get('forecast', {}).get('forecastday', [])[0].get('hour', [])
+def fetch_hourly_weather_data(date, city, lat, lon, api_key):
+    # API endpoint for weather data
+    url = f"https://api.exampleweatherapi.com/v1/hourly?lat={lat}&lon={lon}&date={date}&key={api_key}"
 
-    #List to store weather data
-    weather_data = []
-    for hour in hourly_data:
-        #extract relevant features from API
-        weather = {
-            "city": city,
-            "date_time": pd.to_datetime(hour["time"]),
-            "temp_c": hour["temp_c"],
-            "humidity": hour["humidity"],
-            "wind_kmph": hour["wind_kph"],
-            "precip_mm": hour["precip_mm"],
-            "Atmospheric Pressure": hour["pressure_mb"],
-            "Visibility": hour["vis_km"],
-            "Dew Point": hour["dewpoint_c"],
-            "Wind Gust": hour["wind_kph"],
-            "Cloud Cover (%)": hour["cloud"],
-            "UV Index": hour.get("uv", "N/A"),
-            "condition": hour["condition"]["text"]
-        }
-        #Append features to weather data List
-        weather_data.append(weather)
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception if the request was not successful
+        data = response.json()
 
-    #Return weather data List
-    return weather_data
+        # Extract relevant hourly weather data
+        hourly_data = data.get("hourly", [])
+
+        # List to store weather data
+        weather_data = []
+        for hour in hourly_data:
+            # Extract relevant features from API response
+            weather = {
+                "city": city,
+                "date_time": pd.to_datetime(hour["time"]),
+                "temp_c": hour["temp_c"],
+                "humidity": hour["humidity"],
+                "wind_kmph": hour["wind_kph"],
+                "precip_mm": hour["precip_mm"],
+                "Atmospheric Pressure": hour["pressure_mb"],
+                "Visibility": hour["vis_km"],
+                "Dew Point": hour["dewpoint_c"],
+                "Wind Gust": hour["wind_kph"],
+                "Cloud Cover (%)": hour["cloud"],
+                "UV Index": hour.get("uv", "N/A"),
+                "condition": hour["condition"]["text"]
+            }
+            # Append features to weather data list
+            weather_data.append(weather)
+
+        return weather_data
+
+    except requests.exceptions.RequestException as e:
+        print("Error fetching weather data:", e)
+        return None
+
+# Function to perform section-based prediction
+def predict_section_weather_conditions(section_data, model, city_encode):
+    # Drop the columns not needed in prediction
+    features = [
+        "Atmospheric Pressure", "Cloud Cover (%)", "Dew Point", "UV Index",
+        "Visibility", "Wind Gust", "humidity", "precip_mm", "temp_c", "wind_kmph",
+        "hour", "hour_sin", "hour_cos"
+    ]
+    x = section_data[features].drop(['condition', 'city', 'date_time', 'year', 'Section of Day'], axis=1)
+
+    # Make prediction
+    predictions = model.predict(x)
+
+    # Decode the predicted condition labels
+    decoded_condition = {
+        0: 'Clear', 1: 'Cloudy', 2: 'Heavy Rain at Times', 3: 'Light Rain Shower',
+        4: 'Mist', 5: 'Moderate or Heavy Rain Shower', 6: 'Moderate Rain at Times',
+        7: 'Overcast', 8: 'Partly Cloudy', 9: 'Patchy Light Rain with Thunder',
+        10: 'Patchy Rain Possible', 11: 'Thundry Outbreak Possible'
+    }
+    predicted_conditions = [decoded_condition[label] for label in predictions]
+
+    # Create a DataFrame with the predictions and the city encoding
+    result_df = section_data.copy()
+    result_df['Predicted Condition'] = predicted_conditions
+    result_df['city_encoded'] = city_encode
+
+    return result_df
+
+
+# Function to decode weather conditions
+def decode_weather_condition(prediction, decoded_condition):
+    # Check if the prediction label exists in the decoded_condition dictionary
+    if prediction in decoded_condition:
+        return decoded_condition[prediction]
+    else:
+        return "Unknown"
 
 
 #Main app function
@@ -61,11 +122,6 @@ def main():
 
     # User inputs
     cities = ["Lagos", "Port Harcourt", "Kano", "Abuja", "Ibadan", "Ota"]
-    #Days to forcast
-    def get_next_days():
-        today = datetime.today().date()
-        dat = pd.date_range(today, periods=8).date
-        return dat
 
     # Fetch the next 3 days
     dat = get_next_days()
@@ -75,8 +131,33 @@ def main():
         city = st.selectbox("Select the city:", cities)
     with col2:
         dates = st.multiselect("Select the date(s) (YYYY-MM-DD):", dat)
-    lat, lon = 0, 0 #latitude and longitude of the city
-    city_encode = 0 #encoded value of the city
+
+    # Fetch the next 3 days
+    if not dates:
+        st.warning("Please select at least one date.")
+        return
+
+    lat, lon = city_coordinates.get(city, ("0", "0"))
+    city_encode = cities.index(city)
+
+    for date in dates:
+        print(date)
+        weather_data = fetch_hourly_weather_data(date, city, lat, lon)
+
+        # If data is fetched
+        if weather_data:
+            # Process weather data (similar to your code, but moved to a separate function)
+
+            # Perform section-based prediction
+            predictions, section_result = predict_section_weather_conditions(df, ensemble, city_encode)
+
+            # Decode weather conditions
+            decoded_conditions = [decode_weather_condition(pred, decoded_condition) for pred in predictions]
+
+            # Display predictions (similar to your code, but refactored)
+        else:
+            st.error("Failed to fetch weather data. Please check your inputs.")
+
 
     #Cities to predict for
     if city and dates:
