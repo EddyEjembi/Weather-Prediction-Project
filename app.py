@@ -9,7 +9,7 @@ import pickle
 from datetime import datetime, timedelta
 
 # API key for weatherapi.com
-API_KEY = 'fb222dc231b44f05b0682536230205'
+API_KEY = st.secrets.API_KEY
 
 #load machine learning model
 with open('ensemble_model.pkl', 'rb') as file:
