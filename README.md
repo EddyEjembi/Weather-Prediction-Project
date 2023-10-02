@@ -9,13 +9,11 @@ This weather prediction project enables users to forecast weather conditions for
 
 #### Run the Code
 To run the code in python, create a new environment and run this script
-'''
+```
 pip install requirements.txt
-'''
-after installing all the required libraries from the file, run the app using
-'''
+
 streamlit run app.py
-'''
+```
 
 Detailed Documentation for this project can be accessed [Here](https://www.nodexihub.com/project?sk=USER%23dcd49241-3f22-4c00-8f8a-a26f1c9d4fc0%23PROJECT%2339da072e-fd90-4b6b-ab2c-5619742f8278)
 
