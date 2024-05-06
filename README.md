@@ -15,6 +15,6 @@ pip install requirements.txt
 streamlit run app.py
 ```
 
-Detailed Documentation for this project can be accessed [Here](https://www.nodexihub.com/project?sk=USER%23dcd49241-3f22-4c00-8f8a-a26f1c9d4fc0%23PROJECT%2339da072e-fd90-4b6b-ab2c-5619742f8278)
+Detailed Documentation for this project can be accessed [Here](https://medium.com/python-in-plain-english/weather-prediction-with-machine-learning-90e04d86cea7)
 
 The Project web app can be accessed [here](https://weather-prediction.streamlit.app/)
